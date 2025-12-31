@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BookBuds</title>
+
+    <!-- Nice-to-have: App Store Smart App Banner -->
+    <meta name="apple-itunes-app" content="app-id=6755941845" />
+
+    <style>
+      body {
+        font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        text-align: center;
+        padding: 48px 18px;
+        background: #FCE4B1;
+        color: #000;
+      }
+      .card {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 28px 22px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.55);
+        backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+      }
+      h1 { margin: 0 0 10px; font-size: 26px; }
+      p { margin: 0 0 18px; line-height: 1.4; }
+      a.button {
+        display: inline-block;
+        padding: 14px 22px;
+        background: #000;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      .small { margin-top: 14px; font-size: 13px; opacity: 0.75; }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <h1>📚 BookBuds</h1>
+      <p>Opening in the app…</p>
+
+      <a id="storeBtn" class="button" href="https://apps.apple.com/app/id6755941845">
+        Get BookBuds
+      </a>
+
+      <div class="small">
+        If nothing happens, tap “Get BookBuds”.
+      </div>
+    </div>
+
+    <script>
+      // Example URLs:
+      // /profile/abc123
+      // /bonfire/xyz789
+
+      const path = window.location.pathname.replace(/\/+$/, ""); // remove trailing slash
+      const parts = path.split("/").filter(Boolean);
+      const route = parts[0]; // "profile" or "bonfire"
+      const id = parts[1] || "";
+
+      // Your app's custom scheme (set this up in the iOS app too)
+      // e.g. bookbuds://profile/abc123
+      const deepLink = id ? `bookbuds://${route}/${encodeURIComponent(id)}` : `bookbuds://${route}`;
+
+      // App Store fallback (you can also add campaign params if you want)
+      const appStoreUrl = `https://apps.apple.com/app/id6755941845`;
+
+      // Button should always take them somewhere useful
+      document.getElementById("storeBtn").href = appStoreUrl;
+
+      // Try to open the app (works when Universal Link didn't open it, or if user pasted URL in some places)
+      // If app isn't installed, user will stay here; then we push to App Store after a short delay.
+      const start = Date.now();
+
+      // Attempt to open app via custom scheme
+      window.location.href = deepLink;
+
+      // Fallback to App Store if app didn't open
+      setTimeout(() => {
+        // If we're still here after ~900ms, assume app didn't open
+        if (Date.now() - start < 1400) {
+          window.location.href = appStoreUrl;
+        }
+      }, 900);
+    </script>
+  </body>
+</html>
