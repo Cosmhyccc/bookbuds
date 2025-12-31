@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TW8D6G76AF.com.saifali.bookbuds",
+        "paths": [
+          "/profile/*",
+          "/bonfire/*"
+        ]
+      }
+    ]
+  }
+}
