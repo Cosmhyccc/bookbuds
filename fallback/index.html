@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BookBuds</title>
 
-    <!-- Nice-to-have: App Store Smart App Banner -->
+    <!-- App Store Smart App Banner -->
     <meta name="apple-itunes-app" content="app-id=6755941845" />
 
     <style>
@@ -35,59 +35,136 @@
         text-decoration: none;
         border-radius: 999px;
         font-weight: 600;
+        margin: 6px;
+      }
+      .secondary {
+        background: #22c55e;
+        color: #08110a;
       }
       .small { margin-top: 14px; font-size: 13px; opacity: 0.75; }
+      code {
+        background: rgba(0,0,0,0.1);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
     </style>
   </head>
 
   <body>
     <div class="card">
       <h1>📚 BookBuds</h1>
-      <p>Opening in the app…</p>
+      <p id="copy">Opening in the app…</p>
 
-      <a id="storeBtn" class="button" href="https://apps.apple.com/app/id6755941845">
+      <a
+        id="storeBtn"
+        class="button"
+        href="https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845"
+      >
         Get BookBuds
       </a>
 
-      <div class="small">
-        If nothing happens, tap “Get BookBuds”.
-      </div>
+      <a
+        id="openBtn"
+        class="button secondary"
+        href="#"
+        style="display:none;"
+      >
+        Open BookBuds
+      </a>
+
+      <div class="small" id="hint"></div>
     </div>
 
     <script>
-      // Example URLs:
-      // /profile/abc123
-      // /bonfire/xyz789
+      /**********************
+       * CONFIG (your real values)
+       **********************/
+      const APP_STORE_URL =
+        "https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845";
 
-      const path = window.location.pathname.replace(/\/+$/, ""); // remove trailing slash
-      const parts = path.split("/").filter(Boolean);
-      const route = parts[0]; // "profile" or "bonfire"
-      const id = parts[1] || "";
+      const SUPABASE_URL =
+        "https://efgdhxrfiilbtzziscpf.supabase.co";
 
-      // Your app's custom scheme (set this up in the iOS app too)
-      // e.g. bookbuds://profile/abc123
-      const deepLink = id ? `bookbuds://${route}/${encodeURIComponent(id)}` : `bookbuds://${route}`;
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZ2RoeHJmaWlsYnR6emlzY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0NDY2NTUsImV4cCI6MjA4MDAyMjY1NX0.716EywiFrmyYVKaoZXNgQ_LCn2DAKpVG3UhINqP6xh0";
 
-      // App Store fallback (you can also add campaign params if you want)
-      const appStoreUrl = `https://apps.apple.com/app/id6755941845`;
+      /**********************
+       * Helpers
+       **********************/
+      const copyEl = document.getElementById("copy");
+      const hintEl = document.getElementById("hint");
+      const openBtn = document.getElementById("openBtn");
 
-      // Button should always take them somewhere useful
-      document.getElementById("storeBtn").href = appStoreUrl;
+      function getReferrerId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("referrer_user_id");
+      }
 
-      // Try to open the app (works when Universal Link didn't open it, or if user pasted URL in some places)
-      // If app isn't installed, user will stay here; then we push to App Store after a short delay.
-      const start = Date.now();
+      function generateToken() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+        const arr = new Uint8Array(16);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
+      }
 
-      // Attempt to open app via custom scheme
-      window.location.href = deepLink;
+      async function saveReferralClaim(referrerId, token) {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/referral_claims`,
+          {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal"
+            },
+            body: JSON.stringify({
+              token_value: token,
+              referrer_id: referrerId
+            })
+          }
+        );
 
-      // Fallback to App Store if app didn't open
-      setTimeout(() => {
-        // If we're still here after ~900ms, assume app didn't open
-        if (Date.now() - start < 1400) {
-          window.location.href = appStoreUrl;
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(txt);
         }
-      }, 900);
+      }
+
+      /**********************
+       * Main
+       **********************/
+      (async function () {
+        const referrerId = getReferrerId();
+
+        if (!referrerId) {
+          copyEl.textContent = "Get the app to start reading with friends.";
+          return;
+        }
+
+        copyEl.textContent = "Preparing your invite…";
+
+        const token = generateToken();
+        const claimUrl = `${location.origin}/claim?token=${encodeURIComponent(token)}`;
+
+        try {
+          await saveReferralClaim(referrerId, token);
+        } catch (e) {
+          copyEl.textContent = "Something went wrong. Please refresh.";
+          hintEl.textContent = String(e.message || e);
+          return;
+        }
+
+        openBtn.href = claimUrl;
+        openBtn.style.display = "inline-block";
+
+        copyEl.innerHTML =
+          "1) Tap <b>Get BookBuds</b> to install.<br>" +
+          "2) Come back here and tap <b>Open BookBuds</b>.";
+
+        hintEl.innerHTML =
+          "Your referral is preserved via <code>?token=…</code>";
+      })();
     </script>
   </body>
 </html>
