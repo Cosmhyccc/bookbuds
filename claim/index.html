@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open BookBuds</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#0b0f14; color:#fff; margin:0; }
+    .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .card { max-width:520px; width:100%; background:#121826; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size:20px; margin:0 0 10px; }
+    p { opacity:.85; line-height:1.45; margin:0 0 14px; }
+    .btnrow { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    a.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border-radius:12px; text-decoration:none; font-weight:700; border:1px solid rgba(255,255,255,.12); }
+    a.primary { background:#22c55e; color:#08110a; border-color:transparent; }
+    a.ghost { background:transparent; color:#fff; }
+    .small { font-size:12px; opacity:.7; margin-top:10px; }
+    code { background: rgba(255,255,255,.08); padding:2px 6px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Finish joining your friend in BookBuds</h1>
+      <p id="status">Preparing your referral link…</p>
+
+      <div class="btnrow">
+        <a id="openBtn" class="btn primary" href="#">Open BookBuds</a>
+        <a id="storeBtn" class="btn ghost" href="https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845" rel="noopener">Download from App Store</a>
+      </div>
+
+      <div class="small">
+        If you just installed the app, come back here and tap <b>Open BookBuds</b>.
+        (This keeps your referral token in the URL: <code>?token=…</code>)
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APP_STORE_URL = "https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845";
+
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+
+    const statusEl = document.getElementById("status");
+    const openBtn = document.getElementById("openBtn");
+    const storeBtn = document.getElementById("storeBtn");
+
+    storeBtn.href = APP_STORE_URL;
+
+    if (!token) {
+      statusEl.textContent = "Missing token. Ask your friend to resend the invite link.";
+      openBtn.style.pointerEvents = "none";
+      openBtn.style.opacity = "0.5";
+    } else {
+      // Keep token in URL. If app is installed, this Universal Link should open the app.
+      const claimUrl = `${location.origin}/claim?token=${encodeURIComponent(token)}`;
+      openBtn.href = claimUrl;
+
+      statusEl.textContent = "Tap “Open BookBuds”. If you don’t have the app yet, download it first.";
+    }
+  </script>
+</body>
+</html>
