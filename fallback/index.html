@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BookBuds</title>
 
+    <!-- Smart App Banner -->
     <meta name="apple-itunes-app" content="app-id=6755941845" />
 
     <style>
@@ -24,8 +25,9 @@
         backdrop-filter: blur(6px);
         box-shadow: 0 10px 30px rgba(0,0,0,0.10);
       }
-      h1 { margin: 0 0 10px; font-size: 26px; }
-      p { margin: 0 0 18px; line-height: 1.4; font-size: 18px; }
+      h1 { margin: 0 0 12px; font-size: 26px; }
+      p { margin: 0 0 18px; font-size: 18px; line-height: 1.4; }
+
       a.button {
         display: inline-block;
         padding: 14px 22px;
@@ -40,20 +42,24 @@
         background: #22c55e;
         color: #08110a;
       }
-      .small { margin-top: 14px; font-size: 13px; opacity: 0.75; }
+
+      .small {
+        margin-top: 14px;
+        font-size: 13px;
+        opacity: 0.75;
+      }
     </style>
   </head>
 
   <body>
     <div class="card">
       <h1>📚 BookBuds</h1>
-      <p id="copy">Install BookBuds to continue.</p>
+      <p id="headline">Opening BookBuds…</p>
 
       <a
         id="storeBtn"
         class="button"
         href="https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845"
-        rel="noopener"
       >
         Get BookBuds
       </a>
@@ -71,25 +77,40 @@
     </div>
 
     <script>
+      /********************
+       * CONFIG
+       ********************/
       const APP_STORE_URL =
         "https://apps.apple.com/us/app/bookbuds-read-with-friends/id6755941845";
+
       const SUPABASE_URL =
         "https://efgdhxrfiilbtzziscpf.supabase.co";
+
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZ2RoeHJmaWlsYnR6emlzY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0NDY2NTUsImV4cCI6MjA4MDAyMjY1NX0.716EywiFrmyYVKaoZXNgQ_LCn2DAKpVG3UhINqP6xh0";
 
-      const copyEl = document.getElementById("copy");
-      const subcopyEl = document.getElementById("subcopy");
+      /********************
+       * ELEMENTS
+       ********************/
+      const headline = document.getElementById("headline");
+      const subcopy = document.getElementById("subcopy");
       const openBtn = document.getElementById("openBtn");
-      document.getElementById("storeBtn").href = APP_STORE_URL;
+      const storeBtn = document.getElementById("storeBtn");
 
+      storeBtn.href = APP_STORE_URL;
+
+      /********************
+       * HELPERS
+       ********************/
       function getReferrerId() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("referrer_user_id");
+        return new URLSearchParams(window.location.search)
+          .get("referrer_user_id");
       }
 
       function generateToken() {
-        return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+        return crypto.randomUUID
+          ? crypto.randomUUID()
+          : Date.now() + "-" + Math.random().toString(16).slice(2);
       }
 
       async function saveReferralClaim(referrerId, token) {
@@ -101,38 +122,58 @@
             "Content-Type": "application/json",
             Prefer: "return=minimal"
           },
-          body: JSON.stringify({ token_value: token, referrer_id: referrerId })
+          body: JSON.stringify({
+            token_value: token,
+            referrer_id: referrerId
+          })
         });
-        if (!res.ok) throw new Error(await res.text().catch(() => ""));
+
+        if (!res.ok) throw new Error("Supabase insert failed");
       }
 
+      /********************
+       * MAIN FLOW
+       ********************/
       (async function init() {
         const referrerId = getReferrerId();
 
-        // Non-referral links: keep it dead simple
+        // No referral → just send to App Store
         if (!referrerId) {
-          subcopyEl.textContent = "After installing, tap the invite link again from Messages.";
+          headline.textContent = "Redirecting to the App Store…";
+          setTimeout(() => {
+            window.location.href = APP_STORE_URL;
+          }, 400);
           return;
         }
 
-        // Referral link: create deterministic token + show "Open BookBuds" (HTTPS)
+        // Referral flow
         const token = generateToken();
         const claimUrl = `${location.origin}/claim?token=${encodeURIComponent(token)}`;
 
         try {
           await saveReferralClaim(referrerId, token);
         } catch {
-          // If insert fails, don't confuse the user—just let them install.
-          subcopyEl.textContent = "After installing, tap the invite link again from Messages.";
+          // Even if referral fails, do NOT block install
+          setTimeout(() => {
+            window.location.href = APP_STORE_URL;
+          }, 400);
           return;
         }
 
-        // The natural user flow:
-        // Install -> tap invite again (Messages) OR tap Open here (if they come back)
+        // Auto-redirect to App Store (clean UX)
+        headline.textContent = "Redirecting to the App Store…";
+        setTimeout(() => {
+          window.location.href = APP_STORE_URL;
+        }, 500);
+
+        // Safety net ONLY (hidden at first)
         openBtn.href = claimUrl;
-        openBtn.style.display = "inline-block";
-        copyEl.textContent = "Install BookBuds, then open the invite again to join.";
-        subcopyEl.textContent = "If you just installed and came back here, tap “Open BookBuds”.";
+        subcopy.textContent =
+          "If you return here after installing, tap Open BookBuds.";
+
+        setTimeout(() => {
+          openBtn.style.display = "inline-block";
+        }, 2500);
       })();
     </script>
   </body>
